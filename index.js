@@ -1,3 +1,7 @@
+const BDUSS = "";
+const SVIP_BDUSS = "";
+const STOKEN = "";
+
 const error = `
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -200,114 +204,112 @@ const error_div = `</div>
 
 
 const generate = async request => {
-  const text = await request.formData()
-  const surl = text.get('surl')
-  const pwd = text.get('pwd')
-  const headers = { 'Content-Type': 'text/html;charset=UTF-8' }
-  const surl_1 = surl.substring(1)
-  async function verifyPwd(surl,pwd){
-    let formData1 = new FormData()
-    formData1.append('pwd',pwd)
-    const res = await fetch('https://pan.baidu.com/share/verify?channel=chunlei&clienttype=0&web=1&app_id=250528&surl='+surl_1,
-    {
-      body: formData1,
-      method: 'POST',
-      headers:{
-        'user-agent':'netdisk',
-        'Referer':'https://pan.baidu.com/disk/home'
-      }
-      }
-      )
-      const json1 = await res.json()
-      if(json1.errno == 0){
-        return json1.randsk
-      }
-      else {
-        return 1
-      }
-      
-      
-  }
-  async function getSign(surl,randsk){
-    if(randsk == 1){
-      return 1
+    const text = await request.formData()
+    const surl = text.get('surl')
+    const pwd = text.get('pwd')
+    const headers = { 'Content-Type': 'text/html;charset=UTF-8' }
+    const surl_1 = surl.substring(1)
+    async function verifyPwd(surl, pwd) {
+        let formData1 = new FormData()
+        formData1.append('pwd', pwd)
+        const res = await fetch('https://pan.baidu.com/share/verify?channel=chunlei&clienttype=0&web=1&app_id=250528&surl=' + surl_1,
+            {
+                body: formData1,
+                method: 'POST',
+                headers: {
+                    'user-agent': 'netdisk',
+                    'Referer': 'https://pan.baidu.com/disk/home'
+                }
+            }
+        )
+        const json1 = await res.json()
+        if (json1.errno == 0) {
+            return json1.randsk
+        }
+        else {
+            return 1
+        }
+
+
     }
-    const res1 = await fetch('https://pan.baidu.com/s/1'+surl,
-    {
-      method:'GET',
-      headers:{
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.514.1919.810 Safari/537.36',
-        'Cookie':'BDUSS=**INPUT YOUR BDUSS HERE**; '
-            +  'STOKEN=**INPUT YOUR STOKEN HERE**; BDCLND=' + randsk
-      }
-    })
-    const body = await res1.text()
-    var re = /yunData.setData\(({.+)\);/
-    if(body.match(re)){
-      const json2 = JSON.parse(body.match(re)[1])
-      return json2
+    async function getSign(surl, randsk) {
+        if (randsk == 1) {
+            return 1
+        }
+        const res1 = await fetch('https://pan.baidu.com/s/1' + surl,
+            {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.514.1919.810 Safari/537.36',
+                    'Cookie': `BDUSS=${BDUSS}; STOKEN=${STOKEN}; BDCLND=${randsk}`
+                }
+            })
+        const body = await res1.text()
+        var re = /yunData.setData\(({.+)\);/
+        if (body.match(re)) {
+            const json2 = JSON.parse(body.match(re)[1])
+            return json2
+        }
+        else {
+            return 1
+        }
     }
-    else {
-      return 1
+    async function getFileList(shareid, uk, randsk) {
+        const res2 = await fetch('https://pan.baidu.com/share/list?app_id=250528&channel='
+            + 'chunlei&clienttype=0&desc=0&num=100&order=name&page=1&root=1&shareid=' + shareid + '&showempty=0&uk='
+            + uk + '&web=1', {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.514.1919.810 Safari/537.36',
+                'Cookie': `BDUSS=${BDUSS}; STOKEN=${STOKEN}; BDCLND=${randsk}`
+            }
+        })
+        const body = await res2.text()
+        return JSON.parse(body)
     }
-  }
-  async function getFileList(shareid,uk,randsk){
-    const res2 = await fetch('https://pan.baidu.com/share/list?app_id=250528&channel='
-    + 'chunlei&clienttype=0&desc=0&num=100&order=name&page=1&root=1&shareid=' + shareid + '&showempty=0&uk='
-    + uk + '&web=1',{
-      method:'GET',
-      headers:{
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.514.1919.810 Safari/537.36',
-        'Cookie':'BDUSS=**INPUT YOUR BDUSS HERE**;'
-            +  'STOKEN=**INPUT YOUR STOKEN HERE**; BDCLND=' + randsk
-      }
-    })
-    const body = await res2.text()
-    return JSON.parse(body)
-  }
-  const randsk = await verifyPwd(surl_1,pwd)
-  const json2 = await getSign(surl_1,randsk)
-  let filecontent = ``
-  if(json2 != 1){
-    const sign = json2.sign
-    const timestamp = json2.timestamp
-    const shareid = json2.shareid
-    const uk = json2.uk 
-    const filejson = await getFileList(shareid,uk,randsk)
-    for(var i=0;i<filejson.list.length;i++){
-      const file = filejson.list[i]
-      if(file.isdir == 0){
-filecontent += `<li class="list-group-item border-muted rounded text-muted py-2">
+    const randsk = await verifyPwd(surl_1, pwd)
+    const json2 = await getSign(surl_1, randsk)
+    let filecontent = ``
+    if (json2 != 1) {
+        const sign = json2.sign
+        const timestamp = json2.timestamp
+        const shareid = json2.shareid
+        const uk = json2.uk
+        const filejson = await getFileList(shareid, uk, randsk)
+        for (var i = 0; i < filejson.list.length; i++) {
+            const file = filejson.list[i]
+            if (file.isdir == 0) {
+                filecontent += `<li class="list-group-item border-muted rounded text-muted py-2">
 <i class="far fa-file mr-2"></i>
-<a href="javascript:void(0)" onclick="dl('`+ file.fs_id + `',`+ timestamp +`,'`+ sign +`','` + randsk + `','`+shareid+`','`+ uk +`')">`+file.server_filename+`</a>
-<span class="float-right">`+ file.size +`</span>
+<a href="javascript:void(0)" onclick="dl('`+ file.fs_id + `',` + timestamp + `,'` + sign + `','` + randsk + `','` + shareid + `','` + uk + `')">` + file.server_filename + `</a>
+<span class="float-right">`+ file.size + `</span>
 </li>`
-      }
-      else {
-filecontent += `<li class="list-group-item border-muted rounded text-muted py-2">
+            }
+            else {
+                filecontent += `<li class="list-group-item border-muted rounded text-muted py-2">
 <i class="far fa-folder mr-2"></i>
-<a href="javascript:void(0)" onclick="Swal.fire('Sorry~','暂不支持文件夹下载','error')">`+file.server_filename+`</a>
+<a href="javascript:void(0)" onclick="Swal.fire('Sorry~','暂不支持文件夹下载','error')">`+ file.server_filename + `</a>
 <span class="float-right"></span>
 </li>`
-      }
-      
-    }
-    let filefoot = `</ul>
+            }
+
+        }
+        let filefoot = `</ul>
 </div>
 </div>
 </body>
 </html>`
-    return new Response(filebody+filecontent+filefoot, { headers })
-  }
-  else{
-    return new Response(error + `
+        return new Response(filebody + filecontent + filefoot, { headers })
+    }
+    else {
+        return new Response(error + `
       <div class="alert alert-danger" role="alert">
 <h5 class="alert-heading">提示</h5>
 <hr>
 <p class="card-text">提取码错误或文件失效</p>
 </div>` + error_div, { headers })
-    
-  }
+
+    }
 
 }
 const landing = `
@@ -602,77 +604,76 @@ const dfooter = `
 
 
 const download = async request => {
-  const form2 = await request.formData()
-  const fs_id = form2.get('fs_id')
-  const timestamp = form2.get('time')
-  const sign = form2.get('sign')
-  const randsk = form2.get('randsk')
-  const share_id = form2.get('share_id')
-  const uk = form2.get('uk')
-  async function getDlink(fs_id,timestamp,sign,randsk,share_id,uk){
-    var formData2 = new FormData()
-    formData2.append('encrypt',0)
-    formData2.append('extra','{"sekey":"'+decodeURIComponent(randsk)+'"}')
-    formData2.append('fid_list','['+fs_id+']')
-    formData2.append('primaryid',share_id)
-    formData2.append('uk',uk)
-    formData2.append('product','share')
-    formData2.append('type','nolimit')
-    const res3 = await fetch('https://pan.baidu.com/api/sharedownload?app_id=250528&channel=chunlei&clienttype=12&sign='+sign+'&timestamp='+timestamp+'&web=1',{
-      body:formData2,
-      headers:{
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.514.1919.810 Safari/537.36',
-        'Cookie':'BDUSS=**INPUT YOUR BDUSS HERE**;'
-            +  'STOKEN=**INPUT YOUR STOKEN HERE**; BDCLND=' + randsk
-      },
-      method:'POST'
-      }
-    )
-    return JSON.parse(await res3.text())
-  }
-  const json3 = await getDlink(fs_id,timestamp,sign,randsk,share_id,uk)
-  let dresult = ``
-  if(json3.errno == 0){
-  const dlink = json3.list[0].dlink
-  const getRealLink = await fetch(dlink,{
-    headers:{
-      'user-agent': 'LogStatistic',
-      'Cookie': 'BDUSS=**INPUT YOUR SVIP BDUSS HERE**;'
-    },
-    redirect:"manual"
-  })
+    const form2 = await request.formData()
+    const fs_id = form2.get('fs_id')
+    const timestamp = form2.get('time')
+    const sign = form2.get('sign')
+    const randsk = form2.get('randsk')
+    const share_id = form2.get('share_id')
+    const uk = form2.get('uk')
+    async function getDlink(fs_id, timestamp, sign, randsk, share_id, uk) {
+        var formData2 = new FormData()
+        formData2.append('encrypt', 0)
+        formData2.append('extra', '{"sekey":"' + decodeURIComponent(randsk) + '"}')
+        formData2.append('fid_list', '[' + fs_id + ']')
+        formData2.append('primaryid', share_id)
+        formData2.append('uk', uk)
+        formData2.append('product', 'share')
+        formData2.append('type', 'nolimit')
+        const res3 = await fetch('https://pan.baidu.com/api/sharedownload?app_id=250528&channel=chunlei&clienttype=12&sign=' + sign + '&timestamp=' + timestamp + '&web=1', {
+            body: formData2,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.514.1919.810 Safari/537.36',
+                'Cookie': `BDUSS=${BDUSS}; STOKEN=${STOKEN}; BDCLND=${randsk}`
+            },
+            method: 'POST'
+        }
+        )
+        return JSON.parse(await res3.text())
+    }
+    const json3 = await getDlink(fs_id, timestamp, sign, randsk, share_id, uk)
+    let dresult = ``
+    if (json3.errno == 0) {
+        const dlink = json3.list[0].dlink
+        const getRealLink = await fetch(dlink, {
+            headers: {
+                'user-agent': 'LogStatistic',
+                'Cookie': `BDUSS=${SVIP_BDUSS};`
+            },
+            redirect: "manual"
+        })
 
-  const realLink = await getRealLink.headers.get('Location').substring(7)
-  dresult += `<div class="alert alert-primary" role="alert">
+        const realLink = await getRealLink.headers.get('Location').substring(7)
+        dresult += `<div class="alert alert-primary" role="alert">
 <h5 class="alert-heading">获取下载链接成功</h5>
 <hr>
-<p class="card-text"><a href="http://`+realLink+`" onclick= target=_blank>下载链接(http)</a> <a href="https://`+realLink+`" target=_blank>下载链接(https)</a><br><br><a>推送到Aria2(即将支持)</a><br><br><a href="./help">下载链接使用方法（必读）</a></p>
+<p class="card-text"><a href="http://`+ realLink + `" onclick= target=_blank>下载链接(http)</a> <a href="https://` + realLink + `" target=_blank>下载链接(https)</a><br><br><a>推送到Aria2(即将支持)</a><br><br><a href="./help">下载链接使用方法（必读）</a></p>
 </div>`
-  }
-  else{
-      dresult += `<div class="alert alert-danger" role="alert">
+    }
+    else {
+        dresult += `<div class="alert alert-danger" role="alert">
 <h5 class="alert-heading">获取下载链接失败</h5>
 <hr>
 <p class="card-text">未知错误</p>
 </div>`
-  }
+    }
 
-  return new Response(dbody+dresult+dfooter, { headers: {'Content-Type': 'text/html;charset=UTF-8'} })
+    return new Response(dbody + dresult + dfooter, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
 }
 async function handleRequest(request) {
-  let response
-  const { url } = request
-  if (request.method === 'POST') {
-    if(url.includes('download')){
-      response = await download(request)
-    }
-    else{
-      response = await generate(request)
-    }
-    
-  } else {
-    if(url.includes('help')){
-      response = new Response(helpbody+`
+    let response
+    const { url } = request
+    if (request.method === 'POST') {
+        if (url.includes('download')) {
+            response = await download(request)
+        }
+        else {
+            response = await generate(request)
+        }
+
+    } else {
+        if (url.includes('help')) {
+            response = new Response(helpbody + `
       <div class="alert alert-primary" role="alert">
 <h5 class="alert-heading">提示</h5>
 <hr>
@@ -712,15 +713,15 @@ async function handleRequest(request) {
 </div>
 </p>
 </div>
-      `+dfooter, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
+      `+ dfooter, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
+        }
+        else {
+            response = new Response(landing, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
+        }
     }
-    else{
-    response = new Response(landing, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
-    }
-  }
-  return response
+    return response
 }
 
 addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
+    event.respondWith(handleRequest(event.request))
 })
